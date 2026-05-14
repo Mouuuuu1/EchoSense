@@ -23,12 +23,12 @@ class VoiceOutput:
 
     def _init_piper(self, models_dir: str | None):
         try:
-            import glob, os, sys
+            import sys
             sys.path.insert(0, "/home/echosense/hailo-apps")
             from hailo_apps.python.gen_ai_apps.gen_ai_utils.voice_processing.text_to_speech import TextToSpeechProcessor
             self._piper = TextToSpeechProcessor()
             log.info("TTS: using Piper via hailo-apps")
-        except Exception as e:
+        except (Exception, SystemExit) as e:
             log.info("Piper TTS not available (%s) — using espeak", e)
             self._piper = None
 

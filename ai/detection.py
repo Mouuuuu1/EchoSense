@@ -43,7 +43,9 @@ class ObjectDetector:
 
     def _load(self, path: str):
         self._hef = HEF(path)
-        self._target = VDevice()
+        _params = VDevice.create_params()
+        _params.group_id = "SHARED"
+        self._target = VDevice(_params)
 
         if hasattr(self._hef, "get_network_groups"):
             ng = self._hef.get_network_groups()[0]
@@ -80,16 +82,21 @@ class ObjectDetector:
         orig_shape = image.shape[:2]
 
         if self._use_infer_model:
-            inp, _ = self._preprocess(image, uint8=True)
-            bindings = self._cfg_model.create_bindings()
-            bindings.input().set_buffer(inp)
-            out_shape = self._infer_model.output().shape
-            bindings.output().set_buffer(np.empty(out_shape, dtype=np.float32))
-            self._cfg_model.run([bindings], 10000)
-            out = bindings.output().get_buffer()
-            if isinstance(out, list):
-                return self._postprocess_nms(out, orig_shape)
-            return self._postprocess([out], orig_shape, 1.0)
+            try:
+                if self._cfg_model is None:
+                    return [], [], []
+                inp, _ = self._preprocess(image, uint8=True)
+                bindings = self._cfg_model.create_bindings()
+                bindings.input().set_buffer(inp)
+                out_shape = self._infer_model.output().shape
+                bindings.output().set_buffer(np.empty(out_shape, dtype=np.float32))
+                self._cfg_model.run([bindings], 10000)
+                out = bindings.output().get_buffer()
+                if isinstance(out, list):
+                    return self._postprocess_nms(out, orig_shape)
+                return self._postprocess([out], orig_shape, 1.0)
+            except (AttributeError, RuntimeError):
+                return [], [], []
 
         inp, scale = self._preprocess(image, uint8=False)
         with InferVStreams(self._ng, self._in_params, self._out_params) as pipe:

@@ -46,7 +46,7 @@ class VoiceInput:
             self._stt = SpeechToTextProcessor(self._vdevice, self._hef_path)
             self._recorder = AudioRecorder()
             log.info("VoiceInput: Whisper STT ready")
-        except Exception as e:
+        except (Exception, SystemExit) as e:
             log.warning("VoiceInput: Whisper not available: %s", e)
 
     # ── public ────────────────────────────────────────────────────────────────
