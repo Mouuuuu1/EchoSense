@@ -303,22 +303,7 @@ Connect directly to the battery 12V rail. These run always-on.
 
 ---
 
-## 15. NFC Card Reader
-
-For the NFC pairing feature (future implementation), a common choice is the **PN532 module** over I2C:
-
-| PN532 Pin | Wire to | Pi 5 Header |
-|---|---|---|
-| VCC | 3.3V | Pin 1 |
-| GND | GND | Pin 6 |
-| SDA | GPIO2 (I2C SDA) | Pin 3 |
-| SCL | GPIO3 (I2C SCL) | Pin 5 |
-
-Set the PN532 switch to **I2C mode** (both DIP switches: 1=ON, 2=OFF).
-
----
-
-## 16. Full GPIO Summary Table
+## 15. Full GPIO Summary Table
 
 | GPIO | BCM | Pi Pin | Connected To |
 |---|---|---|---|
@@ -338,12 +323,11 @@ Set the PN532 switch to **I2C mode** (both DIP switches: 1=ON, 2=OFF).
 | GPIO25 | 25 | 22 | Vibration Motor via transistor |
 | GPIO26 | 26 | 37 | SOS Button → GND |
 
-> GPIO2/3 (Pins 3/5) are reserved for I2C (NFC reader).
 > GPIO18–20 are reserved for I2S mic. If using a USB mic instead, GPIO18–20 are free.
 
 ---
 
-## 17. Assembly Checklist
+## 16. Assembly Checklist
 
 - [ ] Hailo AI HAT seated and secured on Pi 5 M.2 slot
 - [ ] Camera ribbon cable inserted (blue tab facing USB ports), lock clicked
