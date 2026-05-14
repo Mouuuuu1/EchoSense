@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EchoSense — Caregiver Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0; }
+
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; background: #1a1d27; border-bottom: 1px solid #2e3044;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: .5px; }
+    .badge {
+      font-size: .7rem; padding: 3px 8px; border-radius: 99px;
+      background: #2e3044; color: #9ca3af;
+    }
+    .badge.online { background: #14532d; color: #4ade80; }
+    .badge.alert  { background: #7f1d1d; color: #f87171; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 14px; padding: 14px;
+      height: calc(100vh - 56px);
+    }
+
+    .panel {
+      background: #1a1d27; border: 1px solid #2e3044;
+      border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .panel-header {
+      padding: 10px 14px; font-size: .75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .8px;
+      background: #13151f; border-bottom: 1px solid #2e3044; color: #9ca3af;
+    }
+    .panel-body { flex: 1; overflow: hidden; position: relative; }
+
+    /* Camera */
+    #camera-feed { width: 100%; height: 100%; object-fit: cover; background: #000; }
+    #camera-overlay {
+      position: absolute; bottom: 10px; left: 10px; right: 10px;
+      background: rgba(0,0,0,.6); padding: 8px 10px; border-radius: 6px;
+      font-size: .8rem; line-height: 1.4;
+    }
+
+    /* Map */
+    #map { width: 100%; height: 100%; }
+
+    /* Status */
+    .status-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px;
+    }
+    .stat-card {
+      background: #13151f; border-radius: 8px; padding: 10px 12px;
+      border: 1px solid #2e3044;
+    }
+    .stat-label { font-size: .65rem; text-transform: uppercase; color: #6b7280; letter-spacing:.6px; }
+    .stat-value { font-size: 1.3rem; font-weight: 700; margin-top: 2px; }
+    .stat-value.ok    { color: #4ade80; }
+    .stat-value.warn  { color: #fbbf24; }
+    .stat-value.danger{ color: #f87171; }
+
+    /* Event log */
+    #event-log {
+      padding: 8px 12px; overflow-y: auto; height: 100%;
+      font-size: .78rem; display: flex; flex-direction: column; gap: 5px;
+    }
+    .log-entry {
+      display: flex; gap: 8px; padding: 5px 8px;
+      background: #13151f; border-radius: 5px; border-left: 3px solid #2e3044;
+    }
+    .log-entry.sos    { border-left-color: #f87171; }
+    .log-entry.nav    { border-left-color: #60a5fa; }
+    .log-entry.obstacle { border-left-color: #fbbf24; }
+    .log-ts   { color: #6b7280; white-space: nowrap; }
+    .log-type { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="13" stroke="#60a5fa" stroke-width="1.5"/>
+    <path d="M9 14 Q14 8 19 14 Q14 20 9 14Z" fill="#60a5fa" opacity=".7"/>
+    <circle cx="14" cy="14" r="3" fill="#60a5fa"/>
+  </svg>
+  <h1>EchoSense</h1>
+  <span class="badge" id="conn-badge">Connecting…</span>
+  <span class="badge" id="mode-badge">—</span>
+</header>
+
+<div class="grid">
+
+  <!-- Camera feed -->
+  <div class="panel" style="grid-row:1/3">
+    <div class="panel-header">Live Camera</div>
+    <div class="panel-body">
+      <img id="camera-feed" src="/stream" alt="camera" />
+      <div id="camera-overlay">
+        <div id="detection-text">Waiting for detections…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="panel">
+    <div class="panel-header">GPS Tracking</div>
+    <div class="panel-body"><div id="map"></div></div>
+  </div>
+
+  <!-- Status + Event log -->
+  <div class="panel" style="display:grid; grid-template-rows: auto 1fr;">
+    <div>
+      <div class="panel-header">Device Status</div>
+      <div class="status-grid">
+        <div class="stat-card">
+          <div class="stat-label">Obstacle Distance</div>
+          <div class="stat-value ok" id="stat-lidar">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">GPS Coordinates</div>
+          <div class="stat-value ok" id="stat-gps" style="font-size:.9rem">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Mode</div>
+          <div class="stat-value ok" id="stat-mode">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Navigation</div>
+          <div class="stat-value ok" id="stat-nav">Idle</div>
+        </div>
+      </div>
+      <div class="panel-header" style="border-top:1px solid #2e3044">Event Log</div>
+    </div>
+    <div class="panel-body">
+      <div id="event-log"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── Map ───────────────────────────────────────────────────────────────────────
+const map = L.map('map').setView([25.2048, 55.2708], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+  maxZoom: 19,
+}).addTo(map);
+
+const userIcon = L.divIcon({
+  html: '<div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:2px solid #fff;box-shadow:0 0 6px #60a5fa"></div>',
+  iconSize: [14, 14], className: '',
+});
+let userMarker = null;
+const trackLine = L.polyline([], { color: '#60a5fa', weight: 2, opacity: .7 }).addTo(map);
+
+function updateMap(lat, lon) {
+  const latlng = [lat, lon];
+  if (!userMarker) {
+    userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
+    map.setView(latlng, 16);
+  } else {
+    userMarker.setLatLng(latlng);
+    map.panTo(latlng);
+  }
+  trackLine.addLatLng(latlng);
+  document.getElementById('stat-gps').textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+}
+
+// ── GPS WebSocket ─────────────────────────────────────────────────────────────
+function connectWS() {
+  const ws = new WebSocket(`ws://${location.host}/ws/gps`);
+  ws.onopen  = () => {
+    document.getElementById('conn-badge').textContent = 'Online';
+    document.getElementById('conn-badge').className = 'badge online';
+  };
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    updateMap(d.lat, d.lon);
+  };
+  ws.onclose = () => {
+    document.getElementById('conn-badge').textContent = 'Offline';
+    document.getElementById('conn-badge').className = 'badge';
+    setTimeout(connectWS, 3000);
+  };
+}
+connectWS();
+
+// ── Status polling ────────────────────────────────────────────────────────────
+async function pollStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+
+    const lidar = d.lidar_cm;
+    const lidarEl = document.getElementById('stat-lidar');
+    lidarEl.textContent = lidar ? `${lidar} cm` : '—';
+    lidarEl.className = 'stat-value ' +
+      (lidar < 60 ? 'danger' : lidar < 150 ? 'warn' : 'ok');
+
+    document.getElementById('stat-mode').textContent = d.mode || '—';
+    document.getElementById('mode-badge').textContent = d.mode || '—';
+    document.getElementById('stat-nav').textContent =
+      d.navigating ? `To: ${d.nav_destination}` : 'Idle';
+    document.getElementById('detection-text').textContent =
+      d.last_detection || 'No detections';
+  } catch (_) {}
+}
+setInterval(pollStatus, 2000);
+pollStatus();
+
+// ── Event log polling ─────────────────────────────────────────────────────────
+let lastEventId = 0;
+async function pollEvents() {
+  try {
+    const r = await fetch('/api/events');
+    const events = await r.json();
+    const log = document.getElementById('event-log');
+    log.innerHTML = '';
+    for (const ev of events) {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${ev.type}`;
+      const ts = new Date(ev.ts * 1000).toLocaleTimeString();
+      entry.innerHTML = `
+        <span class="log-ts">${ts}</span>
+        <span class="log-type">${ev.type.toUpperCase()}</span>
+        <span>${ev.detail || ''}</span>`;
+      log.appendChild(entry);
+    }
+  } catch (_) {}
+}
+setInterval(pollEvents, 5000);
+pollEvents();
+</script>
+</body>
+</html>

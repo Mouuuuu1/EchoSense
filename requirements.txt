@@ -1,0 +1,31 @@
+# EchoSense dependencies
+# Run: pip install -r requirements.txt --break-system-packages
+
+# Web server
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# HTTP requests (routing, Firebase, geocoding)
+requests>=2.31.0
+
+# Computer vision
+opencv-python>=4.9.0
+
+# GPIO
+gpiozero>=2.0
+lgpio>=0.2
+
+# Serial (LIDAR + SIM808)
+pyserial>=3.5
+
+# TTS fallback (espeak wrapper)
+# pyttsx3>=2.90    # optional, espeak is used directly
+
+# Note: The following are installed via hailo-apps or system packages
+# and should NOT be reinstalled here:
+#   hailo_platform    — from HailoRT SDK
+#   hailo_apps        — from /home/echosense/hailo-apps
+#   piper-tts         — installed in hailo-apps venv
+#   sounddevice       — installed in hailo-apps venv
+#   numpy             — comes with hailo_platform
+#   picamera2         — sudo apt install python3-picamera2
