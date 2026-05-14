@@ -13,9 +13,9 @@ if HAILO_APPS_PATH not in sys.path:
 
 # ── GPIO pin assignments (BCM numbering) ──────────────────────────────────────
 # Buttons — connect each to GND; internal pull-up is used
-BUTTON_LLM_PIN   = 16   # LLM / scene-describe button
-BUTTON_SOS_PIN   = 20   # SOS / emergency button
-BUTTON_POWER_PIN = 21   # Graceful shutdown button
+BUTTON_LLM_PIN   = 16   # LLM / scene-describe button  → Pin 36
+BUTTON_SOS_PIN   = 26   # SOS / emergency button      → Pin 37
+BUTTON_POWER_PIN = 17   # Graceful shutdown button     → Pin 11
 
 # Buzzers (digital on/off via transistor)
 BUZZER_1_PIN = 23
@@ -29,10 +29,13 @@ LED_1_PIN = 12   # GPIO 12 / PWM0
 LED_2_PIN = 13   # GPIO 13 / PWM1
 
 # ── Serial ports ──────────────────────────────────────────────────────────────
-SIM808_PORT      = "/dev/serial0"
-SIM808_BAUD      = 9600
+# TF-Luna LiDAR  → UART0  (GPIO 14/15, enabled via dtoverlay=disable-bt)
 LIDAR_PORT       = "/dev/ttyAMA0"
 LIDAR_BAUD       = 115200
+
+# SIM808 GPS/GSM → UART3  (GPIO 4/5,   enabled via dtoverlay=uart3)
+SIM808_PORT      = "/dev/ttyAMA3"
+SIM808_BAUD      = 9600
 
 # ── AI model paths ────────────────────────────────────────────────────────────
 MODELS_DIR = os.path.join(HAILO_APPS_PATH, "resources", "models", "hailo10h")
